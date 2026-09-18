@@ -1,2 +1,2 @@
 #Ignores openHAB files
-./openhab
+openhab/
