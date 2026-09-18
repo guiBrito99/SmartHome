@@ -5,6 +5,13 @@ OPENHAB_DIR="$(dirname "$0")/openhab"
 OPENHAB_VERSION="4.2.0"
 OPENHAB_URL="https://github.com/openhab/openhab-distro/releases/download/${OPENHAB_VERSION}/openhab-${OPENHAB_VERSION}.tar.gz"
 
+# 0. Factory reset: delete the whole openhab directory (download will re-create it)
+if [ "$1" = "--factory-reset" ]; then
+    echo "Factory reset requested. Deleting the ${OPENHAB_DIR} directory..."
+    rm -rf "$OPENHAB_DIR"
+    echo "openhab directory removed."
+fi
+
 # 1. Download openHAB into ./openhab if not found
 if [ ! -f "$OPENHAB_DIR/runtime/bin/karaf" ]; then
     echo "openHAB not found in ${OPENHAB_DIR}. Downloading openHAB ${OPENHAB_VERSION}..."
