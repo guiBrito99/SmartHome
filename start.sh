@@ -30,6 +30,10 @@ fi
 echo "Trying to update openHAB..."
 ( cd "$OPENHAB_DIR" && sudo ./runtime/bin/update ) || echo "openHAB update skipped/failed; continuing with the existing installation."
 
+# 2.5 Initial-state configuration (first clone or after --factory-reset).
+# config.sh asks about the add-ons; afterwards this step is disabled in-process.
+#./config.sh --keep && sed -i 's|^\./config\.sh|#./config.sh|' "$0"
+
 # Determine the latest JVM version supported by openHAB from its jre.properties
 # (the trailing "jre-N = ${jre-9}" lines declare the supported JRE versions).
 JRE_PROPERTIES="$OPENHAB_DIR/userdata/etc/jre.properties"
@@ -72,7 +76,7 @@ fi
 
 # 2. Set JAVA_HOME strictly for this process tree
 export JAVA_HOME="$JAVA_HOME"
-echo "Smart Home HQ booting with JAVA_HOME=$JAVA_HOME"
+echo "Smart Home booting with JAVA_HOME=$JAVA_HOME"
 
 # 3. Executing openHAB (which validates the JVM version itself)
-./openhab/start.sh
+./openhab/runtime/bin/start
