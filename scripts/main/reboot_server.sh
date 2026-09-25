@@ -8,6 +8,15 @@
 
 # Absolute path derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+var_OPENHAB_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)/openhab"
+
+check_installation() {
+    if ! "$var_SCRIPT_DIR/../internal/verify_installation.sh"; then
+        echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
+        echo "Run 'run.sh --install' to install openHAB first."
+        return 1
+    fi
+}
 
 # Stop the server; abort the reboot if the stop fails.
 stop_server() {
@@ -29,6 +38,7 @@ start_server() {
 main() {
     echo "Rebooting server..."
 
+    check_installation || return 1
     stop_server || return 1
 
     echo ""

@@ -2,14 +2,32 @@
 
 # ============================================================
 # Smart Home - Factory Reset
-# Destructive operation: asks for confirmation, then stops the
-# server, removes the openhab/ and karaf-home/ directories and
-# pulls the latest changes from git.
+# Destructive operation: asks for confirmation, then removes the
+# openhab/ and karaf-home/ directories and pulls the latest changes
+# from git.
 # ============================================================
 
 # Absolute paths derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 var_PROJECT_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)"
+var_OPENHAB_DIR="$var_PROJECT_DIR/openhab"
+
+check_installation() {
+    if ! "$var_SCRIPT_DIR/../internal/verify_installation.sh"; then
+        echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
+        echo "Run 'run.sh --install' to install openHAB first."
+        return 1
+    fi
+}
+
+check_server_stopped() {
+    if var_STATUS="$("$var_SCRIPT_DIR/../internal/get_server_status.sh")"; then
+        echo "Server is running: $var_STATUS"
+        echo "Please stop the server manually before continuing (run.sh --stop or menu option 2), then run this command again."
+        return 1
+    fi
+    return 0
+}
 
 # Ask for explicit confirmation before doing anything destructive.
 confirm_reset() {
@@ -33,13 +51,6 @@ confirm_reset() {
             return 1
             ;;
     esac
-}
-
-# Step 0: stop the server before deleting its files.
-stop_server() {
-    echo ""
-    echo "Step 0: Stopping the server before deletion..."
-    "$var_SCRIPT_DIR/stop_server.sh" || return 1
 }
 
 # Step 1: remove the whole openHAB runtime.
@@ -67,10 +78,11 @@ pull_latest() {
     echo "  Done."
 }
 
-# Entry point: confirm -> stop -> delete -> pull. Single exit point.
+# Entry point: verify -> manual-stop check -> confirm -> delete -> pull. Single exit point.
 main() {
+    check_installation || return 1
+    check_server_stopped || return 1
     confirm_reset || return 1
-    stop_server || return 1
     remove_openhab
     remove_karaf_home
     pull_latest || return 1

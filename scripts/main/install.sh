@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ============================================================
-# Smart Home - Auto Install & Start
-# One-shot setup used by 'run.sh --auto' and menu option 5:
+# Smart Home - Install & Start
+# One-shot setup used by 'run.sh --install' and menu option 5:
 #   1. Download openHAB if missing and update it
 #   2. Configure add-ons (interactive)
 #   3. Start the server
@@ -12,6 +12,14 @@
 # Absolute paths derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 var_OPENHAB_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)/openhab"
+
+check_already_installed() {
+    if "$var_SCRIPT_DIR/../internal/verify_installation.sh"; then
+        echo "openHAB is already installed at ${var_OPENHAB_DIR}. Exiting."
+        return 0
+    fi
+    return 1
+}
 
 # openHAB distribution to download when none is installed yet.
 var_OPENHAB_VERSION="4.2.0"
@@ -76,8 +84,12 @@ verify_running() {
 # Entry point: install/update -> configure -> start -> verify.
 # Single exit point.
 main() {
+    if check_already_installed; then
+        return 0
+    fi
+
     echo "=========================================="
-    echo "   Smart Home - Auto Install & Start"
+    echo "   Smart Home - Install & Start"
     echo "=========================================="
     echo ""
 

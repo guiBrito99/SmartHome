@@ -18,9 +18,17 @@ export KARAF_HOME="$("$var_SCRIPT_DIR/../internal/set_karaf_home.sh")"
 check_installation() {
     if ! "$var_SCRIPT_DIR/../internal/verify_installation.sh"; then
         echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
-        echo "Run 'run.sh --auto' to install openHAB first."
+        echo "Run 'run.sh --install' to install openHAB first."
         return 1
     fi
+}
+
+check_server_status() {
+    if var_STATUS="$("$var_SCRIPT_DIR/../internal/get_server_status.sh")"; then
+        echo "Server is already running: $var_STATUS"
+        return 0
+    fi
+    return 1
 }
 
 # Resolve a JVM supported by openHAB and export it as JAVA_HOME.
@@ -35,8 +43,11 @@ start_openhab() {
     "$var_OPENHAB_DIR/runtime/bin/start"
 }
 
-# Entry point: install check -> JVM resolution -> start. Single exit point.
+# Entry point: running check -> install check -> JVM resolution -> start. Single exit point.
 main() {
+    if check_server_status; then
+        return 0
+    fi
     check_installation || return 1
     resolve_jvm || return 1
     start_openhab

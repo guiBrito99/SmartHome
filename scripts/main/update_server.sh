@@ -3,8 +3,8 @@
 # ============================================================
 # Smart Home - Update Server
 # Updates an existing openHAB installation. Fails if openHAB is
-# not installed yet (use 'run.sh --auto' or auto_install.sh to
-# install it first). Stops a running instance, resolves a JVM,
+# not installed yet (use 'run.sh --install' or install.sh to
+# install it first). Requires a stopped server, resolves a JVM,
 # and runs openhab/runtime/bin/update from the openHAB root.
 # ============================================================
 
@@ -16,23 +16,18 @@ var_OPENHAB_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)/openhab"
 check_installation() {
     if ! "$var_SCRIPT_DIR/../internal/verify_installation.sh"; then
         echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
-        echo "Run 'run.sh --auto' to install openHAB first."
+        echo "Run 'run.sh --install' to install openHAB first."
         return 1
     fi
 }
 
-# Stop a running instance before updating, so files can be replaced safely.
-stop_if_running() {
-    var_ROOT_PID="$("$var_SCRIPT_DIR/../internal/get_root_pid.sh")"
-    if [ -n "$var_ROOT_PID" ] && [ "$var_ROOT_PID" -ne 0 ] && kill -0 "$var_ROOT_PID" 2>/dev/null; then
-        echo "openHAB is running (PID: $var_ROOT_PID). Stopping before update..."
-        if ! "$var_SCRIPT_DIR/stop_server.sh"; then
-            echo "Error: failed to stop openHAB before update."
-            return 1
-        fi
-        echo "Waiting 3 seconds for clean shutdown..."
-        sleep 3
+check_server_stopped() {
+    if var_STATUS="$("$var_SCRIPT_DIR/../internal/get_server_status.sh")"; then
+        echo "Server is running: $var_STATUS"
+        echo "Please stop the server manually before continuing (run.sh --stop or menu option 2), then run this command again."
+        return 1
     fi
+    return 0
 }
 
 # Resolve a JVM supported by openHAB and export it as JAVA_HOME.
@@ -52,7 +47,7 @@ run_update() {
     return 1
 }
 
-# Entry point: install check -> stop if running -> JVM -> update.
+# Entry point: install check -> manual-stop check -> JVM -> update.
 # Single exit point.
 main() {
     echo "=========================================="
@@ -61,7 +56,7 @@ main() {
     echo ""
 
     check_installation || return 1
-    stop_if_running || return 1
+    check_server_stopped || return 1
     resolve_jvm || return 1
     run_update || return 1
 

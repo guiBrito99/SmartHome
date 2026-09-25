@@ -9,7 +9,7 @@
 #   ./run.sh --stop                 -> stop the server
 #   ./run.sh --reboot               -> restart the server
 #   ./run.sh --config               -> configure add-ons
-#   ./run.sh --auto                 -> install, configure, start and verify
+#   ./run.sh --install              -> install, configure, start and verify
 #   ./run.sh --update               -> update openHAB
 #   ./run.sh --factory-reset        -> wipe and restore the project
 # ============================================================
@@ -37,7 +37,7 @@ show_menu() {
     echo "  2) Stop server"
     echo "  3) Reboot server"
     echo "  4) Configure add-ons"
-    echo "  5) Auto install"
+    echo "  5) Install"
     echo "  6) Update server"
     echo "  7) Factory reset"
     echo "  8) Exit"
@@ -72,7 +72,7 @@ mode_to_script() {
         stop)           echo "stop_server.sh" ;;
         reboot)         echo "reboot_server.sh" ;;
         config)         echo "config_server.sh" ;;
-        auto)           echo "auto_install.sh" ;;
+        install)        echo "install.sh" ;;
         update)         echo "update_server.sh" ;;
         factory-reset)  echo "factoryReset_server.sh" ;;
         *)              return 1 ;;
@@ -85,7 +85,7 @@ cli_mode() {
     local var_script_name
     var_script_name=$(mode_to_script "$var_mode") || {
         echo "Unknown mode: '$var_mode'"
-        echo "Usage: $0 --[start|stop|reboot|config|auto|update|factory-reset]"
+        echo "Usage: $0 --[start|stop|reboot|config|install|update|factory-reset]"
         return 1
     }
     echo "Running $var_script_name..."
@@ -104,7 +104,7 @@ menu_mode() {
             2) run_script "stop_server.sh" ;;
             3) run_script "reboot_server.sh" ;;
             4) run_script "config_server.sh" ;;
-            5) run_script "auto_install.sh" ;;
+            5) run_script "install.sh" ;;
             6) run_script "update_server.sh" ;;
             7) run_script "factoryReset_server.sh" ;;
             8) echo "Exiting..." ; return 0 ;;

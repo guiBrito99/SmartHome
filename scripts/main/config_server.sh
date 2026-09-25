@@ -17,6 +17,15 @@ export KARAF_HOME="$var_OPENHAB_DIR/karaf-home"
 var_RUNTIME_CFG="$var_OPENHAB_DIR/conf/services/runtime.cfg"
 var_KEY="org.openhab.jsonaddonservice:urls="
 
+check_server_stopped() {
+    if var_STATUS="$("$var_SCRIPT_DIR/../internal/get_server_status.sh")"; then
+        echo "Server is running: $var_STATUS"
+        echo "Please stop the server manually before continuing (run.sh --stop or menu option 2), then run this command again."
+        return 1
+    fi
+    return 0
+}
+
 # Available add-ons not part of the base distribution, as "name|url" entries.
 var_AVAILABLE_ADDONS=(
     "SmartHomeJ|https://download.smarthomej.org/addons.json"
@@ -98,6 +107,7 @@ main() {
         return 1
     fi
 
+    check_server_stopped || return 1
     var_INSTALLED=()
     var_IFS='|' read -r -a var_INSTALLED <<< "$(get_urls)"
 
