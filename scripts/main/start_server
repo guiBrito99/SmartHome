@@ -12,7 +12,7 @@ var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Load the internal helper functions (set_karaf_home, get_server_status,
 # verify_installation, resolve_jvm) and the shared project paths.
-source "$var_SCRIPT_DIR/../internal/util.sh"
+source "$var_SCRIPT_DIR/../internal/util"
 
 # Redirect Karaf client home (.karaf folder) to the project directory.
 export KARAF_HOME="$(set_karaf_home)"
@@ -21,7 +21,7 @@ export KARAF_HOME="$(set_karaf_home)"
 check_installation() {
     if ! verify_installation; then
         echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
-        echo "Run 'run.sh --install' to install openHAB first."
+        echo "Run './run --install' to install openHAB first."
         return 1
     fi
 }

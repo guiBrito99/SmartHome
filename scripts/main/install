@@ -2,7 +2,7 @@
 
 # ============================================================
 # Smart Home - Install & Start
-# One-shot setup used by 'run.sh --install' and menu option 5:
+# One-shot setup used by './run --install' and menu option 5:
 #   1. Download openHAB if missing and update it
 #   2. Configure add-ons (interactive)
 #   3. Start the server
@@ -14,7 +14,7 @@ var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Load the internal helper functions (verify_installation, get_server_status)
 # and the shared project paths.
-source "$var_SCRIPT_DIR/../internal/util.sh"
+source "$var_SCRIPT_DIR/../internal/util"
 
 check_already_installed() {
     if verify_installation; then
@@ -51,21 +51,21 @@ download_openhab() {
 install_openhab() {
     echo "Step 1: Installing/updating openHAB..."
     download_openhab || return 1
-    "$var_SCRIPT_DIR/update_server.sh" || return 1
+    "$var_SCRIPT_DIR/update_server" || return 1
 }
 
 # Step 2: prompt the user to configure the add-ons.
 configure_addons() {
     echo ""
     echo "Step 2: Configuring add-ons..."
-    "$var_SCRIPT_DIR/config_server.sh" || return 1
+    "$var_SCRIPT_DIR/config_server" || return 1
 }
 
 # Step 3: start the server.
 start_openhab() {
     echo ""
     echo "Step 3: Starting openHAB..."
-    "$var_SCRIPT_DIR/start_server.sh" || return 1
+    "$var_SCRIPT_DIR/start_server" || return 1
 }
 
 # Step 4: check the server status and fail if it did not come up.

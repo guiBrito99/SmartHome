@@ -14,7 +14,7 @@ var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Load the internal helper functions (set_karaf_home, get_server_status) and
 # the shared project paths.
-source "$var_SCRIPT_DIR/../internal/util.sh"
+source "$var_SCRIPT_DIR/../internal/util"
 
 # Redirect Karaf client home (.karaf folder) to project directory
 export KARAF_HOME="$(set_karaf_home)"
@@ -24,7 +24,7 @@ var_KEY="org.openhab.jsonaddonservice:urls="
 check_server_stopped() {
     if var_STATUS="$(get_server_status)"; then
         echo "Server is running: $var_STATUS"
-        echo "Please stop the server manually before continuing (run.sh --stop or menu option 2), then run this command again."
+        echo "Please stop the server manually before continuing (./run --stop or menu option 2), then run this command again."
         return 1
     fi
     return 0
@@ -107,7 +107,7 @@ main() {
     fi
 
     if [ ! -d "$var_OPENHAB_DIR/runtime" ] && [ ! -f "$var_RUNTIME_CFG" ]; then
-        echo "openHAB is not installed yet. Run ./start_server.sh first." >&2
+        echo "openHAB is not installed yet. Run './run --start' first." >&2
         return 1
     fi
 

@@ -16,7 +16,7 @@
 # ============================================================
 
 # Absolute paths derived from the script location (cwd-independent).
-# BASH_SOURCE keeps these correct no matter which script sources util.sh.
+# BASH_SOURCE keeps these correct no matter which script sources util.
 var_INTERNAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 var_PROJECT_DIR="$(cd "$var_INTERNAL_DIR/../.." && pwd)"
 var_OPENHAB_DIR="$var_PROJECT_DIR/openhab"
@@ -24,8 +24,8 @@ var_INSTANCE_PROPS="$var_OPENHAB_DIR/userdata/tmp/instances/instance.properties"
 var_JRE_PROPS="$var_OPENHAB_DIR/userdata/etc/jre.properties"
 
 # Source every internal script except this one (self-sourcing would recurse).
-for var_INTERNAL_SCRIPT in "$var_INTERNAL_DIR"/*.sh; do
+for var_INTERNAL_SCRIPT in "$var_INTERNAL_DIR"/*; do
     [ -f "$var_INTERNAL_SCRIPT" ] || continue
-    [ "$var_INTERNAL_SCRIPT" = "$var_INTERNAL_DIR/util.sh" ] && continue
+    [ "$var_INTERNAL_SCRIPT" = "$var_INTERNAL_DIR/util" ] && continue
     source "$var_INTERNAL_SCRIPT"
 done

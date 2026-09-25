@@ -4,14 +4,14 @@
 # Smart Home - Server Control
 # Main entry point of the project.
 #
-#   ./run.sh                        -> interactive menu
-#   ./run.sh --start                -> start the server
-#   ./run.sh --stop                 -> stop the server
-#   ./run.sh --reboot               -> restart the server
-#   ./run.sh --config               -> configure add-ons
-#   ./run.sh --install              -> install, configure, start and verify
-#   ./run.sh --update               -> update openHAB
-#   ./run.sh --factory-reset        -> wipe and restore the project
+#   ./run                           -> interactive menu
+#   ./run --start                   -> start the server
+#   ./run --stop                    -> stop the server
+#   ./run --reboot                  -> restart the server
+#   ./run --config                  -> configure add-ons
+#   ./run --install                 -> install, configure, start and verify
+#   ./run --update                  -> update openHAB
+#   ./run --factory-reset           -> wipe and restore the project
 # ============================================================
 
 # Re-run this script with sudo if it was started without root privileges.
@@ -24,7 +24,7 @@ var_SCRIPT_DIR="$(cd "$(dirname "$0")/scripts/main" && pwd)"
 
 # Load the internal helper functions (get_server_status for the menu)
 # and the shared project paths.
-source "$var_SCRIPT_DIR/../internal/util.sh"
+source "$var_SCRIPT_DIR/../internal/util"
 
 # Print the menu header and the current server status on screen.
 show_menu() {
@@ -71,13 +71,13 @@ run_script() {
 # Map a CLI mode name (--<mode>) to the script that implements that operation.
 mode_to_script() {
     case "$1" in
-        start)          echo "start_server.sh" ;;
-        stop)           echo "stop_server.sh" ;;
-        reboot)         echo "reboot_server.sh" ;;
-        config)         echo "config_server.sh" ;;
-        install)        echo "install.sh" ;;
-        update)         echo "update_server.sh" ;;
-        factory-reset)  echo "factoryReset_server.sh" ;;
+        start)          echo "start_server" ;;
+        stop)           echo "stop_server" ;;
+        reboot)         echo "reboot_server" ;;
+        config)         echo "config_server" ;;
+        install)        echo "install" ;;
+        update)         echo "update_server" ;;
+        factory-reset)  echo "factoryReset_server" ;;
         *)              return 1 ;;
     esac
 }
@@ -103,13 +103,13 @@ menu_mode() {
         show_menu
         var_choice=$(read_choice)
         case "$var_choice" in
-            1) run_script "start_server.sh" ;;
-            2) run_script "stop_server.sh" ;;
-            3) run_script "reboot_server.sh" ;;
-            4) run_script "config_server.sh" ;;
-            5) run_script "install.sh" ;;
-            6) run_script "update_server.sh" ;;
-            7) run_script "factoryReset_server.sh" ;;
+            1) run_script "start_server" ;;
+            2) run_script "stop_server" ;;
+            3) run_script "reboot_server" ;;
+            4) run_script "config_server" ;;
+            5) run_script "install" ;;
+            6) run_script "update_server" ;;
+            7) run_script "factoryReset_server" ;;
             8) echo "Exiting..." ; return 0 ;;
             *) echo "Invalid choice. Please try again." ; sleep 1 ;;
         esac

@@ -4,5 +4,5 @@
 # ...allowlist the files that belong to the repository
 !/.gitignore
 !/README.md
-!/run.sh
+!/run
 !/scripts/

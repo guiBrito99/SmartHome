@@ -37,7 +37,7 @@ resolve_jvm() {
 
     if [ -z "$var_JAVA_HOME_FOUND" ]; then
         # No supported JVM on this host: install the headless package.
-        # Needs root, which run.sh guarantees via its sudo re-exec, and
+        # Needs root, which the run entry point guarantees via its sudo re-exec, and
         # writes to stderr so stdout stays a single JVM home path.
         echo "No compatible JVM installed. Installing openjdk-${var_TARGET_VERSION}-jre-headless..." >&2
         apt update >&2

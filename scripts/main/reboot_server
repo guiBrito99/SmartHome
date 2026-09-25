@@ -11,12 +11,12 @@ var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Load the internal helper functions (verify_installation) and the shared
 # project paths.
-source "$var_SCRIPT_DIR/../internal/util.sh"
+source "$var_SCRIPT_DIR/../internal/util"
 
 check_installation() {
     if ! verify_installation; then
         echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
-        echo "Run 'run.sh --install' to install openHAB first."
+        echo "Run './run --install' to install openHAB first."
         return 1
     fi
 }
@@ -24,7 +24,7 @@ check_installation() {
 # Stop the server; abort the reboot if the stop fails.
 stop_server() {
     echo "Step 1: Stopping server..."
-    if ! "$var_SCRIPT_DIR/stop_server.sh"; then
+    if ! "$var_SCRIPT_DIR/stop_server"; then
         echo "Error: failed to stop the server. Aborting reboot."
         return 1
     fi
@@ -34,7 +34,7 @@ stop_server() {
 start_server() {
     echo ""
     echo "Step 2: Starting server..."
-    "$var_SCRIPT_DIR/start_server.sh" || return 1
+    "$var_SCRIPT_DIR/start_server" || return 1
 }
 
 # Entry point: stop -> short pause -> start. Single exit point.

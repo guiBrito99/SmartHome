@@ -12,12 +12,12 @@ var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Load the internal helper functions (verify_installation, get_server_status)
 # and the shared project paths.
-source "$var_SCRIPT_DIR/../internal/util.sh"
+source "$var_SCRIPT_DIR/../internal/util"
 
 check_installation() {
     if ! verify_installation; then
         echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
-        echo "Run 'run.sh --install' to install openHAB first."
+        echo "Run './run --install' to install openHAB first."
         return 1
     fi
 }
@@ -25,7 +25,7 @@ check_installation() {
 check_server_stopped() {
     if var_STATUS="$(get_server_status)"; then
         echo "Server is running: $var_STATUS"
-        echo "Please stop the server manually before continuing (run.sh --stop or menu option 2), then run this command again."
+        echo "Please stop the server manually before continuing (./run --stop or menu option 2), then run this command again."
         return 1
     fi
     return 0

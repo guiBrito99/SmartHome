@@ -13,7 +13,7 @@ var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Load the internal helper functions (set_karaf_home, resolve_jvm,
 # get_root_pid) and the shared project paths.
-source "$var_SCRIPT_DIR/../internal/util.sh"
+source "$var_SCRIPT_DIR/../internal/util"
 
 # Redirect Karaf client home (.karaf folder) to the project directory.
 export KARAF_HOME="$(set_karaf_home)"
