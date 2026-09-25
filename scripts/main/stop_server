@@ -11,7 +11,7 @@
 # Absolute path derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Load the internal helper functions (set_karaf_home, resolve_jvm,
+# Load the internal helper functions (set_karaf_home, resolveDependencies,
 # get_root_pid) and the shared project paths.
 source "$var_SCRIPT_DIR/../internal/util"
 
@@ -24,7 +24,7 @@ export KARAF_HOME="$(set_karaf_home)"
 stop_signal() {
     if [ -x "$var_OPENHAB_DIR/runtime/bin/stop" ]; then
         echo "Sending shutdown signal to openHAB..."
-        var_JAVA_HOME="$(resolve_jvm)" || return 1
+        var_JAVA_HOME="$(resolveDependencies)" || return 1
         export JAVA_HOME="$var_JAVA_HOME"
         "$var_OPENHAB_DIR/runtime/bin/stop"
     else

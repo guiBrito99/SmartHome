@@ -13,7 +13,7 @@
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Load the internal helper functions (verify_installation, get_server_status,
-# resolve_jvm) and the shared project paths.
+# resolveDependencies) and the shared project paths.
 source "$var_SCRIPT_DIR/../internal/util"
 
 # Fail with a helpful message if openHAB is not installed yet.
@@ -34,9 +34,9 @@ check_server_stopped() {
     return 0
 }
 
-# Resolve a JVM supported by openHAB and export it as JAVA_HOME.
+# Resolve the dependencies the openHAB binaries need and export JAVA_HOME.
 setup_java_home() {
-    var_JAVA_HOME="$(resolve_jvm)" || return 1
+    var_JAVA_HOME="$(resolveDependencies)" || return 1
     export JAVA_HOME="$var_JAVA_HOME"
 }
 

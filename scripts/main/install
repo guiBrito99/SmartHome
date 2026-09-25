@@ -3,18 +3,29 @@
 # ============================================================
 # Smart Home - Install & Start
 # One-shot setup used by './run --install' and menu option 5:
-#   1. Download openHAB if missing and update it
-#   2. Configure add-ons (interactive)
-#   3. Start the server
-#   4. Verify the server is actually running
+#   1. Resolve the dependencies the steps below need (tools and JVM)
+#   2. Download openHAB if missing and update it
+#   3. Configure add-ons (interactive)
+#   4. Start the server
+#   5. Verify the server is actually running
 # ============================================================
 
 # Absolute path derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Load the internal helper functions (verify_installation, get_server_status)
-# and the shared project paths.
+# Load the internal helper functions (verify_installation, get_server_status,
+# resolveDependencies) and the shared project paths.
 source "$var_SCRIPT_DIR/../internal/util"
+
+# Step 1: make sure the tools used below (wget, tar, ...) and a JVM
+# openHAB accepts are available. This is the bootstrap path, so it
+# resolves them before the download instead of relying on a later step.
+# The resolved JAVA_HOME is dropped on purpose: the steps that need it
+# resolve it again when they export it.
+resolve_dependencies() {
+    echo "Step 1: Resolving dependencies (tools and JVM)..."
+    resolveDependencies > /dev/null || return 1
+}
 
 check_already_installed() {
     if verify_installation; then
@@ -47,31 +58,31 @@ download_openhab() {
     echo "openHAB ${var_OPENHAB_VERSION} downloaded to ${var_OPENHAB_DIR}."
 }
 
-# Step 1: ensure openHAB is present, then run the update routine.
+# Step 2: ensure openHAB is present, then run the update routine.
 install_openhab() {
-    echo "Step 1: Installing/updating openHAB..."
+    echo "Step 2: Installing/updating openHAB..."
     download_openhab || return 1
     "$var_SCRIPT_DIR/update_server" || return 1
 }
 
-# Step 2: prompt the user to configure the add-ons.
+# Step 3: prompt the user to configure the add-ons.
 configure_addons() {
     echo ""
-    echo "Step 2: Configuring add-ons..."
+    echo "Step 3: Configuring add-ons..."
     "$var_SCRIPT_DIR/config_server" || return 1
 }
 
-# Step 3: start the server.
+# Step 4: start the server.
 start_openhab() {
     echo ""
-    echo "Step 3: Starting openHAB..."
+    echo "Step 4: Starting openHAB..."
     "$var_SCRIPT_DIR/start_server" || return 1
 }
 
-# Step 4: check the server status and fail if it did not come up.
+# Step 5: check the server status and fail if it did not come up.
 verify_running() {
     echo ""
-    echo "Step 4: Verifying server status..."
+    echo "Step 5: Verifying server status..."
     sleep 3
     var_STATUS="$(get_server_status)"
     echo "Server Status: $var_STATUS"
@@ -84,7 +95,7 @@ verify_running() {
     esac
 }
 
-# Entry point: install/update -> configure -> start -> verify.
+# Entry point: dependencies -> install/update -> configure -> start -> verify.
 # Single exit point.
 main() {
     if check_already_installed; then
@@ -96,6 +107,7 @@ main() {
     echo "=========================================="
     echo ""
 
+    resolve_dependencies || return 1
     install_openhab || return 1
     configure_addons || return 1
     start_openhab || return 1

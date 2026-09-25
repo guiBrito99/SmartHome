@@ -1,0 +1,119 @@
+# ============================================================
+# Smart Home - Resolve Dependencies
+# Internal function: resolveDependencies
+# Usage: var_JAVA_HOME="$(resolveDependencies)" || return 1
+# Resolves every external dependency the project needs before it can
+# drive openHAB, in this order:
+#   1. the CLI tools the scripts execute (see the table below), which
+#      also covers what the openHAB binaries need: the bundled update
+#      script downloads releases with curl;
+#   2. a JVM version openHAB accepts (21 preferred, 17 as fallback).
+# Anything missing is installed with apt, which needs root (the run
+# entry point guarantees it through its sudo re-exec). Prints the
+# resolved JAVA_HOME on stdout; every progress message goes to stderr
+# so callers capture the home as a single clean value. Returns
+# non-zero when a dependency is still missing after the install.
+# ============================================================
+
+# Resolve the tools and the JVM, installing whatever is missing.
+resolveDependencies() {
+    local var_ENTRY
+    local var_TOOL
+    local var_CANDIDATE
+    local var_TARGET_VERSION
+    local var_JAVA_HOME_FOUND=""
+
+    # Tools the scripts execute, as "<command>:<apt package>" pairs.
+    # apt/dpkg themselves are not listed: they install the rest.
+    local -a var_REQUIRED_TOOLS=(
+        "sed:sed"
+        "grep:grep"
+        "dirname:coreutils"
+        "head:coreutils"
+        "sleep:coreutils"
+        "mkdir:coreutils"
+        "mv:coreutils"
+        "rm:coreutils"
+        "tar:tar"
+        "wget:wget"
+        "curl:curl"
+        "git:git"
+        "pgrep:procps"
+        "pkill:procps"
+        "clear:ncurses-bin"
+    )
+    local -a var_MISSING_TOOLS=()
+    local -a var_MISSING_PACKAGES=()
+
+    # 1. Collect the required tools that are absent on this host.
+    for var_ENTRY in "${var_REQUIRED_TOOLS[@]}"; do
+        var_TOOL="${var_ENTRY%%:*}"
+        if ! command -v "$var_TOOL" > /dev/null 2>&1; then
+            var_MISSING_TOOLS+=("$var_TOOL")
+            var_MISSING_PACKAGES+=("${var_ENTRY##*:}")
+        fi
+    done
+    if [ "${#var_MISSING_TOOLS[@]}" -gt 0 ]; then
+        echo "Missing tools: ${var_MISSING_TOOLS[*]}" >&2
+    fi
+
+    # 2. Pick the JVM version openHAB accepts. It rejects anything but
+    # 17 and 21, so prefer 21 and fall back to 17 when 21 is not
+    # enabled in jre.properties.
+    var_TARGET_VERSION="21"
+    if [ -f "$var_JRE_PROPS" ]; then
+        if grep -qE "^jre-21[[:space:]]*=" "$var_JRE_PROPS" 2>/dev/null; then
+            var_TARGET_VERSION="21"
+        elif grep -qE "^jre-17[[:space:]]*=" "$var_JRE_PROPS" 2>/dev/null; then
+            var_TARGET_VERSION="17"
+        fi
+    fi
+    echo "JVM version supported by openHAB: Java ${var_TARGET_VERSION}" >&2
+
+    for var_CANDIDATE in /usr/lib/jvm/java-${var_TARGET_VERSION}-*/ /usr/lib/jvm/java-1.${var_TARGET_VERSION}.0-*/; do
+        if [ -d "$var_CANDIDATE" ] && [ -x "$var_CANDIDATE/bin/java" ]; then
+            var_JAVA_HOME_FOUND="$var_CANDIDATE"
+            break
+        fi
+    done
+    if [ -z "$var_JAVA_HOME_FOUND" ]; then
+        var_MISSING_PACKAGES+=("openjdk-${var_TARGET_VERSION}-jre-headless")
+    fi
+
+    # 3. Install every missing dependency in a single apt run.
+    if [ "${#var_MISSING_PACKAGES[@]}" -gt 0 ]; then
+        if ! command -v apt > /dev/null 2>&1; then
+            echo "Error: apt is required to install ${var_MISSING_PACKAGES[*]} but was not found." >&2
+            return 1
+        fi
+        echo "Installing missing dependencies: ${var_MISSING_PACKAGES[*]}" >&2
+        apt update >&2
+        apt install -y "${var_MISSING_PACKAGES[@]}" >&2
+    fi
+
+    # 4. Re-check the tools so a failed install is reported here instead
+    # of breaking a script halfway through its work.
+    for var_TOOL in "${var_MISSING_TOOLS[@]}"; do
+        if ! command -v "$var_TOOL" > /dev/null 2>&1; then
+            echo "Error: required tool is still missing after install: $var_TOOL" >&2
+            return 1
+        fi
+    done
+
+    # 5. Same for the JVM: look it up again in case it was just installed.
+    if [ -z "$var_JAVA_HOME_FOUND" ]; then
+        for var_CANDIDATE in /usr/lib/jvm/java-${var_TARGET_VERSION}-*/ /usr/lib/jvm/java-1.${var_TARGET_VERSION}.0-*/; do
+            if [ -d "$var_CANDIDATE" ] && [ -x "$var_CANDIDATE/bin/java" ]; then
+                var_JAVA_HOME_FOUND="$var_CANDIDATE"
+                break
+            fi
+        done
+
+        if [ -z "$var_JAVA_HOME_FOUND" ]; then
+            echo "Error: Java ${var_TARGET_VERSION} installation failed." >&2
+            return 1
+        fi
+    fi
+
+    echo "$var_JAVA_HOME_FOUND"
+}
