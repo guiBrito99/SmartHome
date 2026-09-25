@@ -5,8 +5,12 @@
 # Resolves every external dependency the project needs before it can
 # drive openHAB, in this order:
 #   1. the CLI tools the scripts execute (see the table below), which
-#      also covers what the openHAB binaries need: the bundled update
-#      script downloads releases with curl;
+#      also covers what the openHAB binaries need: its update script
+#      downloads releases with curl, extracts them with unzip and parses
+#      them with awk, and its karaf launcher reads process state with ps.
+#      The remaining tools openHAB uses (cat, chmod, chown, cp, ls, id,
+#      basename, readlink, realpath) all ship in coreutils, which is
+#      already in the table;
 #   2. a JVM version openHAB accepts (21 preferred, 17 as fallback).
 # Anything missing is installed with apt, which needs root (the run
 # entry point guarantees it through its sudo re-exec). Prints the
@@ -19,6 +23,9 @@
 resolveDependencies() {
     local var_ENTRY
     local var_TOOL
+    local var_PACKAGE
+    local var_PACKAGE_KNOWN
+    local var_KNOWN
     local var_CANDIDATE
     local var_TARGET_VERSION
     local var_JAVA_HOME_FOUND=""
@@ -28,6 +35,7 @@ resolveDependencies() {
     local -a var_REQUIRED_TOOLS=(
         "sed:sed"
         "grep:grep"
+        "awk:mawk"
         "dirname:coreutils"
         "head:coreutils"
         "sleep:coreutils"
@@ -37,20 +45,35 @@ resolveDependencies() {
         "tar:tar"
         "wget:wget"
         "curl:curl"
+        "unzip:unzip"
         "git:git"
         "pgrep:procps"
         "pkill:procps"
+        "ps:procps"
         "clear:ncurses-bin"
     )
     local -a var_MISSING_TOOLS=()
     local -a var_MISSING_PACKAGES=()
 
-    # 1. Collect the required tools that are absent on this host.
+    # 1. Collect the required tools that are absent on this host. Several
+    #    commands can share one package (pgrep, pkill and ps are all procps),
+    #    so each package is only asked for once.
     for var_ENTRY in "${var_REQUIRED_TOOLS[@]}"; do
         var_TOOL="${var_ENTRY%%:*}"
-        if ! command -v "$var_TOOL" > /dev/null 2>&1; then
-            var_MISSING_TOOLS+=("$var_TOOL")
-            var_MISSING_PACKAGES+=("${var_ENTRY##*:}")
+        if command -v "$var_TOOL" > /dev/null 2>&1; then
+            continue
+        fi
+        var_MISSING_TOOLS+=("$var_TOOL")
+        var_PACKAGE="${var_ENTRY##*:}"
+        var_PACKAGE_KNOWN=0
+        for var_KNOWN in "${var_MISSING_PACKAGES[@]}"; do
+            if [ "$var_KNOWN" = "$var_PACKAGE" ]; then
+                var_PACKAGE_KNOWN=1
+                break
+            fi
+        done
+        if [ "$var_PACKAGE_KNOWN" -eq 0 ]; then
+            var_MISSING_PACKAGES+=("$var_PACKAGE")
         fi
     done
     if [ "${#var_MISSING_TOOLS[@]}" -gt 0 ]; then
