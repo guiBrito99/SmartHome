@@ -7,13 +7,15 @@
 # from git.
 # ============================================================
 
-# Absolute paths derived from the script location (cwd-independent).
+# Absolute path derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-var_PROJECT_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)"
-var_OPENHAB_DIR="$var_PROJECT_DIR/openhab"
+
+# Load the internal helper functions (verify_installation, get_server_status)
+# and the shared project paths.
+source "$var_SCRIPT_DIR/../internal/util.sh"
 
 check_installation() {
-    if ! "$var_SCRIPT_DIR/../internal/verify_installation.sh"; then
+    if ! verify_installation; then
         echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
         echo "Run 'run.sh --install' to install openHAB first."
         return 1
@@ -21,7 +23,7 @@ check_installation() {
 }
 
 check_server_stopped() {
-    if var_STATUS="$("$var_SCRIPT_DIR/../internal/get_server_status.sh")"; then
+    if var_STATUS="$(get_server_status)"; then
         echo "Server is running: $var_STATUS"
         echo "Please stop the server manually before continuing (run.sh --stop or menu option 2), then run this command again."
         return 1

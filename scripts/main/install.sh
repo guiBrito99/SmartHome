@@ -9,12 +9,15 @@
 #   4. Verify the server is actually running
 # ============================================================
 
-# Absolute paths derived from the script location (cwd-independent).
+# Absolute path derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-var_OPENHAB_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)/openhab"
+
+# Load the internal helper functions (verify_installation, get_server_status)
+# and the shared project paths.
+source "$var_SCRIPT_DIR/../internal/util.sh"
 
 check_already_installed() {
-    if "$var_SCRIPT_DIR/../internal/verify_installation.sh"; then
+    if verify_installation; then
         echo "openHAB is already installed at ${var_OPENHAB_DIR}. Exiting."
         return 0
     fi
@@ -26,9 +29,9 @@ var_OPENHAB_VERSION="4.2.0"
 var_OPENHAB_URL="https://github.com/openhab/openhab-distro/releases/download/${var_OPENHAB_VERSION}/openhab-${var_OPENHAB_VERSION}.tar.gz"
 
 # Download and extract openHAB if it is not installed yet.
-# Skips silently when runtime/bin/karaf is already present.
+# Skips the download when verify_installation already reports the runtime.
 download_openhab() {
-    if [ -f "$var_OPENHAB_DIR/runtime/bin/karaf" ]; then
+    if verify_installation; then
         echo "openHAB is already installed at ${var_OPENHAB_DIR}."
         return 0
     fi
@@ -37,7 +40,7 @@ download_openhab() {
     wget -q --show-progress -O "/tmp/openhab-${var_OPENHAB_VERSION}.tar.gz" "$var_OPENHAB_URL" || return 1
     tar -xzf "/tmp/openhab-${var_OPENHAB_VERSION}.tar.gz" -C "$var_OPENHAB_DIR" || return 1
     rm -f "/tmp/openhab-${var_OPENHAB_VERSION}.tar.gz"
-    if [ ! -f "$var_OPENHAB_DIR/runtime/bin/karaf" ]; then
+    if ! verify_installation; then
         echo "Error: openHAB download or extraction failed."
         return 1
     fi
@@ -70,7 +73,7 @@ verify_running() {
     echo ""
     echo "Step 4: Verifying server status..."
     sleep 3
-    var_STATUS="$("$var_SCRIPT_DIR/../internal/get_server_status.sh")"
+    var_STATUS="$(get_server_status)"
     echo "Server Status: $var_STATUS"
     case "$var_STATUS" in
         RUNNING*) echo "openHAB is up and running." ;;

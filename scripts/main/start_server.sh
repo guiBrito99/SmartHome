@@ -7,16 +7,19 @@
 # openHAB binaries require, then launches the runtime.
 # ============================================================
 
-# Absolute paths derived from the script location (cwd-independent).
+# Absolute path derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-var_OPENHAB_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)/openhab"
+
+# Load the internal helper functions (set_karaf_home, get_server_status,
+# verify_installation, resolve_jvm) and the shared project paths.
+source "$var_SCRIPT_DIR/../internal/util.sh"
 
 # Redirect Karaf client home (.karaf folder) to the project directory.
-export KARAF_HOME="$("$var_SCRIPT_DIR/../internal/set_karaf_home.sh")"
+export KARAF_HOME="$(set_karaf_home)"
 
 # Fail with a helpful message if openHAB is not installed yet.
 check_installation() {
-    if ! "$var_SCRIPT_DIR/../internal/verify_installation.sh"; then
+    if ! verify_installation; then
         echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
         echo "Run 'run.sh --install' to install openHAB first."
         return 1
@@ -24,7 +27,7 @@ check_installation() {
 }
 
 check_server_status() {
-    if var_STATUS="$("$var_SCRIPT_DIR/../internal/get_server_status.sh")"; then
+    if var_STATUS="$(get_server_status)"; then
         echo "Server is already running: $var_STATUS"
         return 0
     fi
@@ -32,8 +35,8 @@ check_server_status() {
 }
 
 # Resolve a JVM supported by openHAB and export it as JAVA_HOME.
-resolve_jvm() {
-    var_JAVA_HOME="$("$var_SCRIPT_DIR/../internal/resolve_jvm.sh")" || return 1
+setup_java_home() {
+    var_JAVA_HOME="$(resolve_jvm)" || return 1
     export JAVA_HOME="$var_JAVA_HOME"
     echo "Smart Home booting with JAVA_HOME=$JAVA_HOME"
 }
@@ -49,7 +52,7 @@ main() {
         return 0
     fi
     check_installation || return 1
-    resolve_jvm || return 1
+    setup_java_home || return 1
     start_openhab
 }
 

@@ -1,10 +1,13 @@
-#!/bin/bash
+# ============================================================
+# Smart Home - Set Karaf Home
+# Internal function: set_karaf_home
+# Usage: export KARAF_HOME="$(set_karaf_home)"
+# Prints the Karaf client home path (.karaf folder) within the project
+# directory. Exported by the scripts that call the openHAB binaries
+# (start, stop, config) so Karaf state stays inside the project.
+# ============================================================
 
-# Internal script: set_karaf_home
-# Usage: var_KARAF_HOME=$(scripts/internal/set_karaf_home.sh)
-# Prints the Karaf client home path (.karaf folder) within the project directory.
-
-var_INTERNAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-var_OPENHAB_DIR="$(cd "$var_INTERNAL_DIR/../.." && pwd)/openhab"
-
-echo "$var_OPENHAB_DIR/karaf-home"
+# Print the project-local Karaf client home path.
+set_karaf_home() {
+    echo "$var_OPENHAB_DIR/karaf-home"
+}

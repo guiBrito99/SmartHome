@@ -8,10 +8,13 @@
 
 # Absolute path derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-var_OPENHAB_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)/openhab"
+
+# Load the internal helper functions (verify_installation) and the shared
+# project paths.
+source "$var_SCRIPT_DIR/../internal/util.sh"
 
 check_installation() {
-    if ! "$var_SCRIPT_DIR/../internal/verify_installation.sh"; then
+    if ! verify_installation; then
         echo "Error: openHAB is not installed at ${var_OPENHAB_DIR}."
         echo "Run 'run.sh --install' to install openHAB first."
         return 1

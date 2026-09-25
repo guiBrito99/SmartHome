@@ -8,12 +8,15 @@
 # wipes the cache/tmp directories.
 # ============================================================
 
-# Absolute paths derived from the script location (cwd-independent).
+# Absolute path derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-var_OPENHAB_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)/openhab"
+
+# Load the internal helper functions (set_karaf_home, resolve_jvm,
+# get_root_pid) and the shared project paths.
+source "$var_SCRIPT_DIR/../internal/util.sh"
 
 # Redirect Karaf client home (.karaf folder) to the project directory.
-export KARAF_HOME="$("$var_SCRIPT_DIR/../internal/set_karaf_home.sh")"
+export KARAF_HOME="$(set_karaf_home)"
 
 # Ask openHAB to shut down gracefully via its stop binary.
 # Only a JVM-resolution failure aborts; a stop failure is tolerated
@@ -21,7 +24,7 @@ export KARAF_HOME="$("$var_SCRIPT_DIR/../internal/set_karaf_home.sh")"
 stop_signal() {
     if [ -x "$var_OPENHAB_DIR/runtime/bin/stop" ]; then
         echo "Sending shutdown signal to openHAB..."
-        var_JAVA_HOME="$("$var_SCRIPT_DIR/../internal/resolve_jvm.sh")" || return 1
+        var_JAVA_HOME="$(resolve_jvm)" || return 1
         export JAVA_HOME="$var_JAVA_HOME"
         "$var_OPENHAB_DIR/runtime/bin/stop"
     else
@@ -33,7 +36,7 @@ stop_signal() {
 # Wait for the root instance to terminate; force-kill if it hangs.
 # Falls back to pgrep when the PID file is missing, as a safety net.
 wait_for_shutdown() {
-    var_ROOT_PID="$("$var_SCRIPT_DIR/../internal/get_root_pid.sh")"
+    var_ROOT_PID="$(get_root_pid)"
 
     if [ -n "$var_ROOT_PID" ] && [ "$var_ROOT_PID" -ne 0 ]; then
         echo "Found openHAB root instance PID: $var_ROOT_PID"

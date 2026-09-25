@@ -9,16 +9,20 @@
 # not installed yet. Updates the urls line, creating it if needed.
 # ============================================================
 
+# Absolute path derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-var_OPENHAB_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)/openhab"
+
+# Load the internal helper functions (set_karaf_home, get_server_status) and
+# the shared project paths.
+source "$var_SCRIPT_DIR/../internal/util.sh"
 
 # Redirect Karaf client home (.karaf folder) to project directory
-export KARAF_HOME="$var_OPENHAB_DIR/karaf-home"
+export KARAF_HOME="$(set_karaf_home)"
 var_RUNTIME_CFG="$var_OPENHAB_DIR/conf/services/runtime.cfg"
 var_KEY="org.openhab.jsonaddonservice:urls="
 
 check_server_stopped() {
-    if var_STATUS="$("$var_SCRIPT_DIR/../internal/get_server_status.sh")"; then
+    if var_STATUS="$(get_server_status)"; then
         echo "Server is running: $var_STATUS"
         echo "Please stop the server manually before continuing (run.sh --stop or menu option 2), then run this command again."
         return 1

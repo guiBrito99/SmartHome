@@ -21,7 +21,10 @@ fi
 
 # Absolute paths derived from the script location (cwd-independent).
 var_SCRIPT_DIR="$(cd "$(dirname "$0")/scripts/main" && pwd)"
-var_OPENHAB_DIR="$(cd "$var_SCRIPT_DIR/../.." && pwd)/openhab"
+
+# Load the internal helper functions (get_server_status for the menu)
+# and the shared project paths.
+source "$var_SCRIPT_DIR/../internal/util.sh"
 
 # Print the menu header and the current server status on screen.
 show_menu() {
@@ -30,7 +33,7 @@ show_menu() {
     echo "      Smart Home - Server Control"
     echo "=========================================="
     echo ""
-    var_STATUS="$("$(dirname "$0")/scripts/internal/get_server_status.sh")"
+    var_STATUS="$(get_server_status)"
     echo "  Server Status: $var_STATUS"
     echo ""
     echo "  1) Start server"
