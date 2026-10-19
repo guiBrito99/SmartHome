@@ -4,7 +4,8 @@
 # Smart Home - Server Control
 # Main entry point of the project.
 #
-#   ./run                           -> interactive menu
+#   ./run                           -> start the web server and stop here
+#   ./run --menu                    -> interactive terminal menu
 #   ./run --start                   -> start the server
 #   ./run --stop                    -> stop the server
 #   ./run --reboot                  -> restart the server
@@ -12,6 +13,11 @@
 #   ./run --install                 -> install, configure, start and verify
 #   ./run --update                  -> update openHAB
 #   ./run --factory-reset           -> wipe and restore the project
+#
+# Every mode starts the web server (webServer/) before doing anything
+# else, so the pages are served during and after the openHAB work.
+# Plain ./run does nothing else: the web UI on port 8081 is the
+# control panel, and --menu is there for the terminal.
 # ============================================================
 
 # Re-run this script with sudo if it was started without root privileges.
@@ -72,25 +78,28 @@ run_script() {
 mode_to_script() {
     case "$1" in
         start)          echo "start_server" ;;
-        stop)           echo "stop_server" ;;
-        reboot)         echo "reboot_server" ;;
-        config)         echo "config_server" ;;
+        stop)          echo "stop_server" ;;
+        reboot)        echo "reboot_server" ;;
+        config)        echo "config_server" ;;
         install)        echo "install" ;;
-        update)         echo "update_server" ;;
+        update)        echo "update_server" ;;
         factory-reset)  echo "factoryReset_server" ;;
+        menu)          echo "" ;;   # handled by main, no script to call
         *)              return 1 ;;
     esac
 }
 
 # Non-interactive mode: run a single operation selected via --<mode>.
+# --menu is not an operation: it is dispatched by main before we get here.
 cli_mode() {
     local var_mode="$1"
     local var_script_name
     var_script_name=$(mode_to_script "$var_mode") || {
         echo "Unknown mode: '$var_mode'"
-        echo "Usage: $0 --[start|stop|reboot|config|install|update|factory-reset]"
+        echo "Usage: $0 --[menu|start|stop|reboot|config|install|update|factory-reset]"
         return 1
     }
+    [ -n "$var_script_name" ] || return 1
     echo "Running $var_script_name..."
     "$var_SCRIPT_DIR/$var_script_name" || return 1
 }
@@ -116,18 +125,34 @@ menu_mode() {
     done
 }
 
-# Entry point: dispatch to the menu (no args) or CLI mode (a single --flag).
+# Entry point: bring up the web UI, then dispatch to the menu (--menu or no
+# args) or CLI mode (a single other --flag).
 main() {
+    # The web server goes up first so the pages are served while the
+    # openHAB functions run. A web problem only warns: the openHAB work
+    # still has to happen. Captured so only its URL is printed here.
+    local var_WEB_URL
+    var_WEB_URL="$(start_web_server)"
+    if [ -n "$var_WEB_URL" ]; then
+        echo "Web UI: $var_WEB_URL"
+    fi
+
     if [[ $# -eq 0 ]]; then
-        menu_mode || return 1
+        # No flag: the web UI is the control panel, so say where it is and
+        # stop. The terminal menu is opt-in with --menu.
+        echo "Use './run --menu' for the terminal menu."
+        return 0
     elif [[ $# -eq 1 ]]; then
-        if [[ $1 == --* ]]; then
-            echo "Running cli mode"
-            cli_mode "${1#--}" || return 1
-        else
+        if [[ $1 != --* ]]; then
             echo "Error: Invalid flag structure"
             return 1
         fi
+        if [[ $1 == --menu ]]; then
+            menu_mode || return 1
+            return 0
+        fi
+        echo "Running cli mode"
+        cli_mode "${1#--}" || return 1
     else
         echo "Error: Only one flag can be used in cli mode"
         return 1

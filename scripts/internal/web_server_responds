@@ -1,0 +1,34 @@
+# ============================================================
+# Smart Home - Web Server Responding
+# Internal function: web_server_responds
+# Usage: if web_server_responds 8081; then ... fi
+# Returns 0 when the Smart Home web server answers on <port>, 1 when
+# nothing is listening or when the listener is a different program.
+# start_web_server uses it to tell "already up" from "needs starting":
+# a plain port check cannot make that distinction, and mistaking a
+# stranger on the port for the web UI would hide a real conflict.
+# ============================================================
+
+# Ask <port> for a page over real HTTP and look for the marker header the
+# server stamps on every response (see
+# webServer/src/com/smarthome/web/SmartHomeServer.java).
+# /dev/tcp needs no extra tool, so this works on a bare system.
+web_server_responds() {
+    local var_PORT="$1"
+    # The probe owns a socket and a request, so it runs in a subshell: a
+    # refused connection stays quiet and the file descriptor never leaks
+    # into the caller's shell.
+    (
+        exec 3<>"/dev/tcp/127.0.0.1/$var_PORT" 2>/dev/null || exit 1
+        printf 'GET / HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+        local var_LINE
+        # Read the response head only. The -t keeps a listener that never
+        # answers from hanging ./run.
+        while IFS= read -r -t 2 var_LINE <&3; do
+            case "${var_LINE,,}" in
+                *x-smarthome:*) exit 0 ;;
+            esac
+        done
+        exit 1
+    ) 2>/dev/null
+}

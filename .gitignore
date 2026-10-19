@@ -6,3 +6,13 @@
 !/README.md
 !/run
 !/scripts/
+!/webServer/
+
+# ...but never the compiled web server output
+/webServer/build/
+
+# ...and never the openHAB credentials, the saved floor layout or the
+# saved Thing bindings: those belong to the machine, not the repository.
+/webServer/config/openhab.auth
+/webServer/config/floor-layout.json
+/webServer/config/thing-map.json

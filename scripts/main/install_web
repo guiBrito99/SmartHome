@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# ============================================================
+# Smart Home - Web Install Wrapper
+# Runs the install script with add-on selections from the web UI,
+# captures all output to a log file (ANSI stripped), and writes
+# a status file for the web progress page to poll.
+# ============================================================
+
+# Use UUID from environment, or generate one if not provided
+UUID="${INSTALL_UUID:-}"
+if [ -z "$UUID" ]; then
+    UUID=$(uuidgen)
+    if [ -z "$UUID" ]; then
+        # Fallback if uuidgen not available
+        UUID="install-$$-$(date +%s)"
+    fi
+fi
+
+echo "DEBUG: INSTALL_UUID=$INSTALL_UUID" >&2
+echo "DEBUG: INSTALL_ADDONS_FILE=$INSTALL_ADDONS_FILE" >&2
+echo "DEBUG: UUID=$UUID" >&2
+echo "DEBUG: PWD=$(pwd)" >&2
+
+LOGFILE="/tmp/smarthome-install-$UUID.log"
+STATUSFILE="/tmp/smarthome-install-$UUID-status.txt"
+ADDONSFILE="/tmp/smarthome-install-$UUID-addons.txt"
+
+echo "DEBUG: LOGFILE=$LOGFILE" >&2
+echo "DEBUG: STATUSFILE=$STATUSFILE" >&2
+echo "DEBUG: ADDONSFILE=$ADDONSFILE" >&2
+
+# The addon selections should already be in ADDONSFILE (written by web handler)
+# Export for the install script
+export INSTALL_ADDONS_FILE="$ADDONSFILE"
+
+echo "DEBUG: INSTALL_ADDONS_FILE=$INSTALL_ADDONS_FILE" >&2
+echo "DEBUG: ADDONSFILE content: $(cat "$ADDONSFILE" 2>/dev/null || echo 'NOT FOUND')" >&2
+
+# Run install, strip ANSI codes, tee to log file
+# Using PIPESTATUS to capture the install script's exit code
+./scripts/main/install 2>&1 | sed -r 's/\x1b\[[0-9;]*[mGKHF]//g' | tee "$LOGFILE"
+EXIT_CODE=${PIPESTATUS[0]}
+
+echo "DEBUG: Install exit code=$EXIT_CODE" >&2
+
+# Write final status and cleanup
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "success" > "$STATUSFILE"
+    # Clean up temp files on success
+    rm -f "$LOGFILE" "$STATUSFILE" "$ADDONSFILE"
+else
+    echo "error" > "$STATUSFILE"
+    # Leave files for retry/debug on error
+fi
+
+exit $EXIT_CODE

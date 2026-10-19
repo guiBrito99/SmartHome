@@ -66,10 +66,16 @@ install_openhab() {
 }
 
 # Step 3: prompt the user to configure the add-ons.
+# If INSTALL_ADDONS_FILE is set, pass it to config_server via --urls-file
+# to skip interactive prompts (used by web UI).
 configure_addons() {
     echo ""
     echo "Step 3: Configuring add-ons..."
-    "$var_SCRIPT_DIR/config_server" || return 1
+    local var_config_args=()
+    if [ -n "${INSTALL_ADDONS_FILE:-}" ]; then
+        var_config_args+=("--urls-file" "$INSTALL_ADDONS_FILE")
+    fi
+    "$var_SCRIPT_DIR/config_server" "${var_config_args[@]}" || return 1
 }
 
 # Step 4: start the server.

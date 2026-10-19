@@ -102,8 +102,27 @@ addon_name() {
 
 main() {
     local var_keep_mode=false
-    if [ "$1" = "--keep" ]; then
-        var_keep_mode=true
+    local var_urls_file=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --keep)
+                var_keep_mode=true
+                ;;
+            --urls-file)
+                shift
+                var_urls_file="$1"
+                ;;
+            *)
+                echo "Unknown option: $1" >&2
+                return 1
+                ;;
+        esac
+        shift
+    done
+
+    if [ "$var_keep_mode" = true ] && [ -n "$var_urls_file" ]; then
+        echo "Error: --keep and --urls-file are mutually exclusive" >&2
+        return 1
     fi
 
     if [ ! -d "$var_OPENHAB_DIR/runtime" ] && [ ! -f "$var_RUNTIME_CFG" ]; then
@@ -111,7 +130,21 @@ main() {
         return 1
     fi
 
-    check_server_stopped || return 1
+check_server_stopped || return 1
+
+    # If --urls-file is provided, read URLs from file and skip all prompts
+    if [ -n "$var_urls_file" ]; then
+        if [ ! -f "$var_urls_file" ]; then
+            echo "Error: URLs file not found: $var_urls_file" >&2
+            return 1
+        fi
+        var_FILE_CONTENT="$(cat "$var_urls_file")"
+        var_URLS=()
+        var_IFS='|' read -r -a var_URLS <<< "$var_FILE_CONTENT"
+        set_urls "$(join_pipe "${var_URLS[@]}")"
+        return 0
+    fi
+
     var_INSTALLED=()
     var_IFS='|' read -r -a var_INSTALLED <<< "$(get_urls)"
 

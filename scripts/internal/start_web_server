@@ -1,0 +1,114 @@
+# ============================================================
+# Smart Home - Start Web Server
+# Internal function: start_web_server
+# Usage: var_WEB_URL="$(start_web_server)"
+# Builds the web server when needed, leaves it running in the
+# background and prints the URL to open on stdout.
+#
+# ./run calls this before anything else, so the pages are already
+# being served while the openHAB functions do their work. The web
+# server is therefore never stopped by ./run: it stays up for as
+# long as the machine is on, and a later ./run just finds it up.
+#
+# Never blocks the caller. A build or start problem is a warning on
+# stderr and a return of 1, because the openHAB work still has to
+# happen when the UI cannot come up.
+#
+# SMARTHOME_WEB_PORT overrides the port (default 8081, since openHAB's
+# own UI already owns 8080). The tests use that to stay out of the way.
+# ============================================================
+
+# Bring up the Java web server, rebuilding it only when the source moved.
+start_web_server() {
+    local var_PORT="${SMARTHOME_WEB_PORT:-8081}"
+    local var_WEB_DIR="$var_PROJECT_DIR/webServer"
+    local var_SOURCE_DIR="$var_WEB_DIR/src/com/smarthome/web"
+    local var_CLASS="$var_WEB_DIR/build/classes/com/smarthome/web/SmartHomeServer.class"
+    local var_LOG="$var_WEB_DIR/build/server.log"
+
+    # Any source file newer than the build means there is a change waiting.
+    # Filled in below, and used for both the rebuild check and the note when
+    # the server is already up.
+    local var_NEWEST=""
+    local var_FILE
+    for var_FILE in "$var_SOURCE_DIR"/*.java; do
+        [ -f "$var_FILE" ] || continue
+        if [ -z "$var_NEWEST" ] || [ "$var_FILE" -nt "$var_NEWEST" ]; then
+            var_NEWEST="$var_FILE"
+        fi
+    done
+
+    # Already serving? Hand back the URL it logged when it started.
+    if web_server_responds "$var_PORT"; then
+        echo "Web server already running on port $var_PORT." >&2
+        # Serving beats rebuilding: stopping a server someone is browsing
+        # mid-edit is not this function's call to make. Flag the pending
+        # change instead, it needs a web server restart to take effect.
+        if [ -n "$var_NEWEST" ] && [ "$var_NEWEST" -nt "$var_CLASS" ]; then
+            echo "Note: $var_NEWEST is newer than the running build, the change is not live yet." >&2
+        fi
+        local var_RUNNING_URL
+        var_RUNNING_URL="$(grep 'Listening on http://' "$var_LOG" 2>/dev/null | tail -n 1 | sed -E 's/.*Listening on //')"
+        # The log is the only place the server prints its LAN address, but it
+        # can be missing (cleared log, server started elsewhere): fall back to
+        # loopback rather than returning nothing.
+        [ -n "$var_RUNNING_URL" ] || var_RUNNING_URL="http://localhost:$var_PORT/"
+        echo "$var_RUNNING_URL"
+        return 0
+    fi
+
+    # Nothing of ours answered, but the port did answer: something else owns
+    # it. Say so instead of letting the JVM die with a bind error.
+    if (exec 3<>"/dev/tcp/127.0.0.1/$var_PORT") 2>/dev/null; then
+        echo "Warning: port $var_PORT is used by another program, web UI not started." >&2
+        echo "Free that port or set SMARTHOME_WEB_PORT to another one." >&2
+        return 1
+    fi
+
+    # Toolchain: javac to build and a JVM to run, both for the version
+    # openHAB uses. resolveDependencies owns that decision (and installs
+    # what is missing), so ask it rather than testing for a compiler here.
+    local var_JAVA_HOME
+    if ! var_JAVA_HOME="$(resolveDependencies)"; then
+        echo "Warning: web toolchain is missing, web UI not started." >&2
+        return 1
+    fi
+
+    # Compile only when the classes are missing or older than the source.
+    # The sources sit in a package folder now, so the whole tree is passed
+    # to javac and the class files land under the same package path.
+    if [ ! -f "$var_CLASS" ] || { [ -n "$var_NEWEST" ] && [ "$var_NEWEST" -nt "$var_CLASS" ]; }; then
+        echo "Building web server..." >&2
+        mkdir -p "$var_WEB_DIR/build/classes"
+        if ! "$var_JAVA_HOME/bin/javac" --release 17 -d "$var_WEB_DIR/build/classes" \
+             "$var_SOURCE_DIR"/*.java >&2; then
+            echo "Warning: web server build failed, web UI not started." >&2
+            return 1
+        fi
+    fi
+
+    # Launch it detached: setsid puts the JVM in its own session, so it
+    # outlives both this function and the terminal ./run was started from.
+    # The log keeps the reason if it dies straight away.
+    mkdir -p "$var_WEB_DIR/build"
+    setsid "$var_JAVA_HOME/bin/java" \
+        -cp "$var_WEB_DIR/build/classes" \
+        com.smarthome.web.SmartHomeServer "$var_PORT" \
+        >>"$var_LOG" 2>&1 </dev/null &
+
+    # Wait for the port to answer before reporting the URL, so the caller
+    # can hand the user a link that already works.
+    local var_TRY=0
+    while [ "$var_TRY" -lt 50 ]; do
+        if web_server_responds "$var_PORT"; then
+            grep 'Listening on http://' "$var_LOG" | tail -n 1 | sed -E 's/.*Listening on //'
+            return 0
+        fi
+        sleep 0.1
+        var_TRY=$((var_TRY + 1))
+    done
+
+    echo "Warning: the web server did not come up on port $var_PORT." >&2
+    tail -n 3 "$var_LOG" >&2
+    return 1
+}
